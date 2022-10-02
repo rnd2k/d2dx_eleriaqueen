@@ -81,7 +81,7 @@
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
     <PostBuildEvent>
-      <Command>copy $(OutDir)glide3x.dll "C:\games\Diablo II\"</Command>
+      <Command>copy "$(OutDir)glide3x.dll" "C:\games\Diablo II\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -118,7 +118,7 @@
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
     <PostBuildEvent>
-      <Command>copy $(OutDir)glide3x.dll "C:\games\Diablo II\"</Command>
+      <Command>copy "$(OutDir)glide3x.dll" "C:\games\Diablo II\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
