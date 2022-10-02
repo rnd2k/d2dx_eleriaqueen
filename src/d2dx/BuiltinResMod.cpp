@@ -82,7 +82,7 @@ bool BuiltinResMod::IsCompatible(
         gameVersion != d2dx::GameVersion::Lod113d &&
         gameVersion != d2dx::GameVersion::Lod114d)
     {
-        D2DX_LOG("Unsupported game version, won't use built-in resolution mod.");
+        D2DX_LOG("Built-in resolution mod does not support game version.");
         return false;
     }
 
