@@ -1267,11 +1267,13 @@ void* GameHelper::GetFunction(
 		case D2Function::D2Client_DrawUnit:
 			return (void*)((uintptr_t)_hD2ClientDll + 0xB8350);
 		case D2Function::D2Client_FindClientSideUnit:
-			return (void*)FindClientSideUnit109d;
+			//return (void*)FindClientSideUnit109d;
+			return (void*)((uintptr_t)_hD2ClientDll + 0x8B560);
 		case D2Function::D2Client_DrawWeatherParticles:
 			return (void*)((uintptr_t)_hD2ClientDll + 0x07BC0);
 		case D2Function::D2Client_FindServerSideUnit:
-			return (void*)FindServerSideUnit109d;
+			//return (void*)FindServerSideUnit109d;
+			return (void*)((uintptr_t)_hD2ClientDll + 0x8B5D0);
 		default:
 			break;
 		}
@@ -1318,11 +1320,13 @@ void* GameHelper::GetFunction(
 		case D2Function::D2Client_DrawUnit:
 			return (void*)((uintptr_t)_hD2ClientDll + 0xBA720);
 		case D2Function::D2Client_FindClientSideUnit:
-			return (void*)FindClientSideUnit110f;
+			//return (void*)FindClientSideUnit110f;
+			return (void*)((uintptr_t)_hD2ClientDll + 0x869F0);
 		case D2Function::D2Client_DrawWeatherParticles:
 			return (void*)((uintptr_t)_hD2ClientDll + 0x08240);
 		case D2Function::D2Client_FindServerSideUnit:
-			return (void*)FindServerSideUnit110f;
+			//return (void*)FindServerSideUnit110f;
+			return (void*)((uintptr_t)_hD2ClientDll + 0x86A60);
 		default:
 			break;
 		}
