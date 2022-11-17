@@ -1045,7 +1045,7 @@ void D2DXContext::OnGammaCorrectionRGB(
 		gammaTable[i] = (ri << 16) | (gi << 8) | bi;
 	}
 
-	_renderContext->LoadGammaTable(gammaTable, ARRAYSIZE(gammaTable));
+	//_renderContext->LoadGammaTable(gammaTable, ARRAYSIZE(gammaTable));
 }
 
 void D2DXContext::PrepareLogoTextureBatch()
