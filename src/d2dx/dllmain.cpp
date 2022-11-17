@@ -18,6 +18,7 @@
 */
 #include "pch.h"
 #include "Detours.h"
+#include "DllNotify.h"
 
 #pragma comment(lib, "comctl32.lib")
 #pragma comment(lib, "dxgi.lib")
@@ -36,6 +37,7 @@ BOOL APIENTRY DllMain(
 	switch (ul_reason_for_call)
 	{
 	case DLL_PROCESS_ATTACH:
+		DllNotify::Init_Dllnotify();
 		SetProcessDPIAware();
 		AttachDetours();
 		break;
@@ -45,6 +47,7 @@ BOOL APIENTRY DllMain(
 		break;
 	case DLL_PROCESS_DETACH:
 		DetachDetours();
+		DllNotify::Uninit_Dllnotify();
 		break;
 	}
 	return TRUE;
