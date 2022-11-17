@@ -54,6 +54,8 @@ namespace d2dx
 	{
 		virtual ~IGameHelper() noexcept {}
 
+		virtual const HMODULE GetModule(LPCWSTR szModule) const = 0;
+
 		virtual GameVersion GetVersion() const = 0;
 
 		virtual _Ret_z_ const char* GetVersionString() const = 0;
@@ -71,6 +73,8 @@ namespace d2dx
 		virtual TextureCategory RefineTextureCategoryFromGameAddress(
 			_In_ TextureCategory previousCategory,
 			_In_ GameAddress gameAddress) const = 0;
+
+		virtual IMAGE_NT_HEADERS* GetHeader(LPBYTE pBase) = 0;
 
 		virtual bool TryApplyInGameFpsFix() = 0;
 

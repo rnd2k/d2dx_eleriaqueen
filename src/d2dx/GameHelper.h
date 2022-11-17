@@ -29,6 +29,8 @@ namespace d2dx
 		GameHelper();
 		virtual ~GameHelper() noexcept {}
 
+		virtual const HMODULE GetModule(LPCWSTR szModule) const override;
+
 		virtual GameVersion GetVersion() const override;
 		
 		virtual _Ret_z_ const char* GetVersionString() const override;
@@ -46,6 +48,8 @@ namespace d2dx
 		virtual TextureCategory RefineTextureCategoryFromGameAddress(
 			_In_ TextureCategory previousCategory,
 			_In_ GameAddress gameAddress) const override;
+
+		virtual IMAGE_NT_HEADERS* GetHeader(LPBYTE pBase) override;
 
 		virtual bool TryApplyInGameFpsFix() override;
 		

@@ -41,6 +41,22 @@ GameHelper::GameHelper() :
 	}
 }
 
+const HMODULE GameHelper::GetModule(LPCWSTR szModule) const
+{
+	HMODULE hModule = 0;
+	wchar_t wcCurrentDir[MAX_PATH] = { 0 };
+	wchar_t buffer[MAX_PATH] = { 0 };
+
+	GetCurrentDirectoryW(MAX_PATH, wcCurrentDir);
+	swprintf(buffer, L"%s\\%s", wcCurrentDir, szModule);
+
+	hModule = GetModuleHandleW(szModule);
+	if (hModule == 0) {
+		hModule = LoadLibraryW(buffer);
+	}
+	return hModule;
+}
+
 GameVersion GameHelper::GetVersion() const
 {
 	return _version;
@@ -380,76 +396,364 @@ TextureCategory GameHelper::RefineTextureCategoryFromGameAddress(
 	}
 }
 
-GameVersion GameHelper::GetGameVersion()
+//GameVersion GameHelper::GetGameVersion()
+//{
+//	GameVersion version = GameVersion::Unsupported;
+//
+//	auto versionSize = GetFileVersionInfoSizeA("game.exe", nullptr);
+//	Buffer<uint8_t> verData(versionSize);
+//
+//	if (!GetFileVersionInfoA("game.exe", NULL, verData.capacity, verData.items))
+//	{
+//		D2DX_LOG("Failed to get file version for game.exe.");
+//		return GameVersion::Unsupported;
+//	}
+//
+//	uint32_t size = 0;
+//	const uint8_t* lpBuffer = nullptr;
+//	bool success = VerQueryValueA(verData.items, "\\", (VOID FAR * FAR*) & lpBuffer, &size);
+//
+//	if (!(success && size > 0))
+//	{
+//		D2DX_LOG("Failed to query version info for game.exe.");
+//		return GameVersion::Unsupported;
+//	}
+//
+//	VS_FIXEDFILEINFO* vsFixedFileInfo = (VS_FIXEDFILEINFO*)lpBuffer;
+//	if (vsFixedFileInfo->dwSignature != 0xfeef04bd)
+//	{
+//		D2DX_LOG("Unexpected signature in version info for game.exe.");
+//		return GameVersion::Unsupported;
+//	}
+//
+//	const int32_t a = vsFixedFileInfo->dwFileVersionMS >> 16;
+//	const int32_t b = vsFixedFileInfo->dwFileVersionMS & 0xffff;
+//	const int32_t c = vsFixedFileInfo->dwFileVersionLS >> 16;
+//	const int32_t d = vsFixedFileInfo->dwFileVersionLS & 0xffff;
+//
+//	if (a == 1 && b == 0 && c == 9 && d == 22)
+//	{
+//		version = GameVersion::Lod109d;
+//	}
+//	else if (a == 1 && b == 0 && c == 10 && d == 39)
+//	{
+//		version = GameVersion::Lod110f;
+//	}
+//	else if (a == 1 && b == 0 && c == 12 && d == 49)
+//	{
+//		version = GameVersion::Lod112;
+//	}
+//	else if (a == 1 && b == 0 && c == 13 && d == 60)
+//	{
+//		version = GameVersion::Lod113c;
+//	}
+//	else if (a == 1 && b == 0 && c == 13 && d == 64)
+//	{
+//		version = GameVersion::Lod113d;
+//	}
+//	else if (a == 1 && b == 14 && c == 3 && d == 68)
+//	{
+//		D2DX_FATAL_ERROR("This version (1.14b) of Diablo II will not work with D2DX. Please upgrade to version 1.14d.");
+//	}
+//	else if (a == 1 && b == 14 && c == 3 && d == 71)
+//	{
+//		version = GameVersion::Lod114d;
+//	}
+//
+//	if (version == GameVersion::Unsupported)
+//	{
+//		MessageBoxA(NULL, "This version of Diablo II is not supported by D2DX. Please upgrade or downgrade to a supported version.", "D2DX", MB_OK);
+//	}
+//
+//	D2DX_LOG("Game version: %d.%d.%d.%d (%s)\n", a, b, c, d, version == GameVersion::Unsupported ? "unsupported" : "supported");
+//
+//	return version;
+//}
+
+
+IMAGE_NT_HEADERS* GameHelper::GetHeader(LPBYTE pBase)
 {
+	if (pBase == NULL)
+		return NULL;
+
+	IMAGE_DOS_HEADER* pDosHeader = (IMAGE_DOS_HEADER*)pBase;
+
+	if (IsBadReadPtr(pDosHeader, sizeof(IMAGE_DOS_HEADER)))
+		return NULL;
+
+	if (pDosHeader->e_magic != IMAGE_DOS_SIGNATURE)
+		return NULL;
+
+	IMAGE_NT_HEADERS* pHeader = (IMAGE_NT_HEADERS*)(pBase + pDosHeader->e_lfanew);
+	if (IsBadReadPtr(pHeader, sizeof(IMAGE_NT_HEADERS)))
+		return NULL;
+
+	if (pHeader->Signature != IMAGE_NT_SIGNATURE)
+		return NULL;
+
+	return pHeader;
+}
+
+GameVersion GameHelper::GetGameVersion() {
 	GameVersion version = GameVersion::Unsupported;
 
-	auto versionSize = GetFileVersionInfoSizeA("game.exe", nullptr);
-	Buffer<uint8_t> verData(versionSize);
+	DWORD offset_Game = 0;
+	HMODULE offset_D2Glide = 0;
+	HMODULE offset_D2Client = 0;
+	HMODULE offset_D2CMP = 0;
+	HMODULE offset_D2Common = 0;
+	HMODULE offset_D2Game = 0;
+	HMODULE offset_D2gfx = 0;
+	HMODULE offset_D2Lang = 0;
+	HMODULE offset_D2Launch = 0;
+	HMODULE offset_D2Net = 0;
+	HMODULE offset_D2Win = 0;
+	HMODULE offset_Fog = 0;
+	HMODULE offset_Storm = 0;
 
-	if (!GetFileVersionInfoA("game.exe", NULL, verData.capacity, verData.items))
-	{
-		D2DX_LOG("Failed to get file version for game.exe.");
-		return GameVersion::Unsupported;
+	offset_Game = (DWORD)GetModuleHandle(NULL);
+	offset_D2Glide = GameHelper::GetModule(L"D2Glide.dll");
+	offset_D2Client = GameHelper::GetModule(L"D2Client.dll");
+	offset_D2CMP = GameHelper::GetModule(L"D2CMP.dll");
+	offset_D2Common = GameHelper::GetModule(L"D2Common.dll");
+	offset_D2Game = GameHelper::GetModule(L"D2Game.dll");
+	offset_D2gfx = GameHelper::GetModule(L"D2gfx.dll");
+	offset_D2Lang = GameHelper::GetModule(L"D2Lang.dll");
+	offset_D2Launch = GameHelper::GetModule(L"D2Launch.dll");
+	offset_D2Net = GameHelper::GetModule(L"D2Net.dll");
+	offset_D2Win = GameHelper::GetModule(L"D2Win.dll");
+	offset_Fog = GameHelper::GetModule(L"Fog.dll");
+	offset_Storm = GameHelper::GetModule(L"Storm.dll");
+
+
+	int count_109b = 0;
+	int count_109d = 0;
+	int count_110f = 0;
+	int count_111 = 0;
+	int count_111b = 0;
+	int count_112a = 0;
+	int count_113c = 0;
+	int count_113d = 0;
+	int count_114a = 0;
+	int count_114b = 0;
+	int count_114c = 0;
+	int count_114d = 0;
+
+
+	IMAGE_NT_HEADERS* pHeader;
+	char buffer[MAX_PATH] = { 0 };
+
+	if (offset_D2Client != NULL) {
+		pHeader = GetHeader((LPBYTE)offset_D2Client);
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x000C234D) count_109b++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x000C16CD) count_109d++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x000C1C1D) count_110f++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x000045E6) count_111++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x000045EE) count_111b++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x000045FA) count_112a++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x000045F6) count_113c++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x000045DE) count_113d++;
+		GetModuleFileNameA(offset_D2Client, buffer, MAX_PATH);
+		D2DX_LOG("D2Client.dll\tbase address %08X, loaded at %08X path %s%s", pHeader->OptionalHeader.ImageBase, (unsigned int)offset_D2Client, buffer,
+			(pHeader->OptionalHeader.ImageBase == (unsigned int)offset_D2Client) ? "" : " (relocated)");
 	}
 
-	uint32_t size = 0;
-	const uint8_t* lpBuffer = nullptr;
-	bool success = VerQueryValueA(verData.items, "\\", (VOID FAR * FAR*) & lpBuffer, &size);
-
-	if (!(success && size > 0))
-	{
-		D2DX_LOG("Failed to query version info for game.exe.");
-		return GameVersion::Unsupported;
+	if (offset_D2CMP != NULL) {
+		pHeader = GetHeader((LPBYTE)offset_D2CMP);
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x00011361) count_109b++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x00011361) count_109d++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x00010E61) count_110f++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x00002C23) count_111++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x00002C23) count_111b++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x00002C23) count_112a++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x00002C23) count_113c++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x00002C23) count_113d++;
+		GetModuleFileNameA(offset_D2CMP, buffer, MAX_PATH);
+		D2DX_LOG("D2Cmp.dll\t\tbase address %08X, loaded at %08X path %s%s", pHeader->OptionalHeader.ImageBase, (unsigned int)offset_D2CMP, buffer,
+			(pHeader->OptionalHeader.ImageBase == (unsigned int)offset_D2CMP) ? "" : " (relocated)");
 	}
 
-	VS_FIXEDFILEINFO* vsFixedFileInfo = (VS_FIXEDFILEINFO*)lpBuffer;
-	if (vsFixedFileInfo->dwSignature != 0xfeef04bd)
-	{
-		D2DX_LOG("Unexpected signature in version info for game.exe.");
-		return GameVersion::Unsupported;
+	if (offset_D2Common != NULL) {
+		pHeader = GetHeader((LPBYTE)offset_D2Common);
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x00074D1D) count_109b++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x00074E2D) count_109d++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x000856DD) count_110f++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x00002C94) count_111++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x00002C8D) count_111b++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x00002C97) count_112a++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x00002C8F) count_113c++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x000047C7) count_113d++;
+		GetModuleFileNameA(offset_D2Common, buffer, MAX_PATH);
+		D2DX_LOG("D2Common.dll\tbase address %08X, loaded at %08X path %s%s", pHeader->OptionalHeader.ImageBase, (unsigned int)offset_D2Common, buffer,
+			(pHeader->OptionalHeader.ImageBase == (unsigned int)offset_D2Common) ? "" : " (relocated)");
 	}
 
-	const int32_t a = vsFixedFileInfo->dwFileVersionMS >> 16;
-	const int32_t b = vsFixedFileInfo->dwFileVersionMS & 0xffff;
-	const int32_t c = vsFixedFileInfo->dwFileVersionLS >> 16;
-	const int32_t d = vsFixedFileInfo->dwFileVersionLS & 0xffff;
+	if (offset_D2Game != NULL) {
+		pHeader = GetHeader((LPBYTE)offset_D2Game);
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x000C66AC) count_109b++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x000C6D5C) count_109d++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x000EDC2C) count_110f++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x000036E6) count_111++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x0000373D) count_111b++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x0000374B) count_112a++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x0000373C) count_113c++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x00003747) count_113d++;
+		GetModuleFileNameA(offset_D2Game, buffer, MAX_PATH);
+		D2DX_LOG("D2Game.dll\t\tbase address %08X, loaded at %08X path %s%s", pHeader->OptionalHeader.ImageBase, (unsigned int)offset_D2Game, buffer,
+			(pHeader->OptionalHeader.ImageBase == (unsigned int)offset_D2Game) ? "" : " (relocated)");
+	}
 
-	if (a == 1 && b == 0 && c == 9 && d == 22)
-	{
-		version = GameVersion::Lod109d;
+	if (offset_D2gfx != NULL) {
+		pHeader = GetHeader((LPBYTE)offset_D2gfx);
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x000054EB) count_109b++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x000054EB) count_109d++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x000054A5) count_110f++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x00001807) count_111++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x00001807) count_111b++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x00001807) count_112a++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x00001807) count_113c++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x00001807) count_113d++;
+		GetModuleFileNameA(offset_D2gfx, buffer, MAX_PATH);
+		D2DX_LOG("D2Gfx.dll\t\tbase address %08X, loaded at %08X path %s%s", pHeader->OptionalHeader.ImageBase, (unsigned int)offset_D2gfx, buffer,
+			(pHeader->OptionalHeader.ImageBase == (unsigned int)offset_D2gfx) ? "" : " (relocated)");
 	}
-	else if (a == 1 && b == 0 && c == 10 && d == 39)
-	{
-		version = GameVersion::Lod110f;
+
+	if (offset_D2Lang != NULL) {
+		pHeader = GetHeader((LPBYTE)offset_D2Lang);
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x00005148) count_109b++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x00005138) count_109d++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x00005048) count_110f++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x00001A6A) count_111++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x00001A5B) count_111b++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x00001A75) count_112a++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x00001A71) count_113c++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x00001A5A) count_113d++;
+		GetModuleFileNameA(offset_D2Lang, buffer, MAX_PATH);
+		D2DX_LOG("D2Lang.dll\t\tbase address %08X, loaded at %08X path %s%s", pHeader->OptionalHeader.ImageBase, (unsigned int)offset_D2Lang, buffer,
+			(pHeader->OptionalHeader.ImageBase == (unsigned int)offset_D2Lang) ? "" : " (relocated)");
 	}
-	else if (a == 1 && b == 0 && c == 12 && d == 49)
-	{
-		version = GameVersion::Lod112;
+
+	if (offset_D2Launch != NULL) {
+		pHeader = GetHeader((LPBYTE)offset_D2Launch);
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x000172C3) count_109b++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x00017243) count_109d++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x00018DC7) count_110f++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x00001A84) count_111++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x00001A85) count_111b++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x00001A85) count_112a++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x00001A87) count_113c++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x00001A84) count_113d++;
+		GetModuleFileNameA(offset_D2Launch, buffer, MAX_PATH);
+		D2DX_LOG("D2Launch.dll\tbase address %08X, loaded at %08X path %s%s", pHeader->OptionalHeader.ImageBase, (unsigned int)offset_D2Launch, buffer,
+			(pHeader->OptionalHeader.ImageBase == (unsigned int)offset_D2Launch) ? "" : " (relocated)");
 	}
-	else if (a == 1 && b == 0 && c == 13 && d == 60)
-	{
-		version = GameVersion::Lod113c;
+
+	if (offset_D2Net != NULL) {
+		pHeader = GetHeader((LPBYTE)offset_D2Net);
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x00002BCE) count_109b++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x00002BCE) count_109d++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x00002C6E) count_110f++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x00001676) count_111++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x00001676) count_111b++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x0000167E) count_112a++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x00001676) count_113c++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x0000167E) count_113d++;
+		GetModuleFileNameA(offset_D2Net, buffer, MAX_PATH);
+		D2DX_LOG("D2Net.dll\t\tbase address %08X, loaded at %08X path %s%s", pHeader->OptionalHeader.ImageBase, (unsigned int)offset_D2Net, buffer,
+			(pHeader->OptionalHeader.ImageBase == (unsigned int)offset_D2Net) ? "" : " (relocated)");
 	}
-	else if (a == 1 && b == 0 && c == 13 && d == 64)
-	{
-		version = GameVersion::Lod113d;
+
+	if (offset_D2Win != NULL) {
+		pHeader = GetHeader((LPBYTE)offset_D2Win);
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x00014F38) count_109b++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x00014F38) count_109d++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x00012EC0) count_110f++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x0000187E) count_111++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x0000187E) count_111b++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x0000188E) count_112a++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x0000187E) count_113c++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x00001887) count_113d++;
+		GetModuleFileNameA(offset_D2Win, buffer, MAX_PATH);
+		D2DX_LOG("D2Win.dll\t\tbase address %08X, loaded at %08X path %s%s", pHeader->OptionalHeader.ImageBase, (unsigned int)offset_D2Win, buffer,
+			(pHeader->OptionalHeader.ImageBase == (unsigned int)offset_D2Win) ? "" : " (relocated)");
 	}
-	else if (a == 1 && b == 14 && c == 3 && d == 68)
-	{
-		D2DX_FATAL_ERROR("This version (1.14b) of Diablo II will not work with D2DX. Please upgrade to version 1.14d.");
+
+	if (offset_Fog != NULL) {
+		pHeader = GetHeader((LPBYTE)offset_Fog);
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x00013658) count_109b++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x000142E7) count_109d++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x000162B0) count_110f++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x00003159) count_111++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x00003142) count_111b++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x0000314A) count_112a++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x00003162) count_113c++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x00003142) count_113d++;
+		GetModuleFileNameA(offset_Fog, buffer, MAX_PATH);
+		D2DX_LOG("Fog.dll\t\t\tbase address %08X, loaded at %08X path %s%s", pHeader->OptionalHeader.ImageBase, (unsigned int)offset_Fog, buffer,
+			(pHeader->OptionalHeader.ImageBase == (unsigned int)offset_Fog) ? "" : " (relocated)");
 	}
-	else if (a == 1 && b == 14 && c == 3 && d == 71)
-	{
-		version = GameVersion::Lod114d;
+
+	if (offset_Storm != NULL) {
+		pHeader = GetHeader((LPBYTE)offset_Storm);
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x00013658) count_109b++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x000142E7) count_109d++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x000162B0) count_110f++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x00003159) count_111++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x00003142) count_111b++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x0000314A) count_112a++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x00003162) count_113c++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x0003C3E0) count_113d++;
+		GetModuleFileNameA(offset_Storm, buffer, MAX_PATH);
+		D2DX_LOG("Storm.dll\t\tbase address %08X, loaded at %08X path %s%s", pHeader->OptionalHeader.ImageBase, (unsigned int)offset_Storm, buffer,
+			(pHeader->OptionalHeader.ImageBase == (unsigned int)offset_Storm) ? "" : " (relocated)");
 	}
+
+	if (offset_D2Glide != NULL) {
+		GetModuleFileNameA((HMODULE)offset_D2Glide, buffer, MAX_PATH);
+		D2DX_LOG("D2Glide.dll\t\tbase address %08X, loaded at %08X path %s%s", pHeader->OptionalHeader.ImageBase, (unsigned int)offset_D2Glide, buffer,
+			(pHeader->OptionalHeader.ImageBase == (unsigned int)offset_D2Glide) ? "" : " (relocated)");
+	}
+
+	if (offset_Game != NULL) {
+		pHeader = GetHeader((LPBYTE)offset_Game);
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x00291342) count_114a++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x002854F2) count_114b++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x002850E2) count_114c++;
+		if (pHeader->OptionalHeader.AddressOfEntryPoint == 0x00282985) count_114d++;
+		GetModuleFileNameA((HMODULE)offset_Game, buffer, MAX_PATH);
+		D2DX_LOG("Game.exe\t\tbase address %08X, loaded at %08X path %s%s", pHeader->OptionalHeader.ImageBase, (unsigned int)offset_Game, buffer,
+			(pHeader->OptionalHeader.ImageBase == (unsigned int)offset_Game) ? "" : " (relocated)");
+	}
+
+	int minimum_match_dll = 7;
+
+	//if (count_109b >= minimum_match_dll) version = GameVersion::Lod109b;
+	if (count_109d >= minimum_match_dll) version = GameVersion::Lod109d;
+	if (count_110f >= minimum_match_dll) version = GameVersion::Lod110f;
+	//if (count_111 >= minimum_match_dll) version = GameVersion::Lod111;
+	//if (count_111b >= minimum_match_dll) version = GameVersion::Lod111b;
+	if (count_112a >= minimum_match_dll) version = GameVersion::Lod112;
+	if (count_113c >= minimum_match_dll) version = GameVersion::Lod113c;
+	if (count_113d >= minimum_match_dll) version = GameVersion::Lod113d;
+
+	if (count_114d != 0) version = GameVersion::Lod114d;
+
+	//FreeLibrary(offset_D2Client);
+	//FreeLibrary(offset_D2CMP);
+	//FreeLibrary(offset_D2Common);
+	//FreeLibrary(offset_D2Game);
+	//FreeLibrary(offset_D2gfx);
+	//FreeLibrary(offset_D2Lang);
+	//FreeLibrary(offset_D2Launch);
+	//FreeLibrary(offset_D2Net);
+	//FreeLibrary(offset_D2Win);
+	//FreeLibrary(offset_Fog);
+	//FreeLibrary(offset_Storm);
 
 	if (version == GameVersion::Unsupported)
 	{
 		MessageBoxA(NULL, "This version of Diablo II is not supported by D2DX. Please upgrade or downgrade to a supported version.", "D2DX", MB_OK);
 	}
-
-	D2DX_LOG("Game version: %d.%d.%d.%d (%s)\n", a, b, c, d, version == GameVersion::Unsupported ? "unsupported" : "supported");
 
 	return version;
 }
