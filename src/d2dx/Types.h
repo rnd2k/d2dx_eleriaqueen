@@ -99,10 +99,11 @@ namespace d2dx
 		Unsupported = 0,
 		Lod109d = 1,
 		Lod110f = 2,
-		Lod112 = 3,
-		Lod113c = 4,
-		Lod113d = 5,
-		Lod114d = 6,
+		Lod111b = 3,
+		Lod112 = 4,
+		Lod113c = 5,
+		Lod113d = 6,
+		Lod114d = 7,
 	};
 
 	enum class GameAddress

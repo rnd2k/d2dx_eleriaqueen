@@ -54,8 +54,6 @@ namespace d2dx
 	{
 		virtual ~IGameHelper() noexcept {}
 
-		virtual const HMODULE GetModule(LPCWSTR szModule) const = 0;
-
 		virtual GameVersion GetVersion() const = 0;
 
 		virtual _Ret_z_ const char* GetVersionString() const = 0;

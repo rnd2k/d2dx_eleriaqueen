@@ -29,7 +29,7 @@ namespace d2dx
 		GameHelper();
 		virtual ~GameHelper() noexcept {}
 
-		virtual const HMODULE GetModule(LPCWSTR szModule) const override;
+		static const HMODULE GetModule(LPCWSTR szModule);
 
 		virtual GameVersion GetVersion() const override;
 		

@@ -27,10 +27,10 @@ GameHelper::GameHelper() :
 	_version(GetGameVersion()),
 	_hProcess(GetCurrentProcess()),
 	_hGameExe(GetModuleHandleA("game.exe")),
-	_hD2ClientDll(LoadLibraryA("D2Client.dll")),
-	_hD2CommonDll(LoadLibraryA("D2Common.dll")),
-	_hD2GfxDll(LoadLibraryA("D2Gfx.dll")),
-	_hD2WinDll(LoadLibraryA("D2Win.dll")),
+	_hD2ClientDll(GetModule(L"D2Client.dll")),
+	_hD2CommonDll(GetModule(L"D2Common.dll")),
+	_hD2GfxDll(GetModule(L"D2Gfx.dll")),
+	_hD2WinDll(GetModule(L"D2Win.dll")),
 	_isProjectDiablo2(GetModuleHandleA("PD2_EXT.dll") != nullptr)
 {
 	InitializeTextureHashPrefixTable();
@@ -41,7 +41,7 @@ GameHelper::GameHelper() :
 	}
 }
 
-const HMODULE GameHelper::GetModule(LPCWSTR szModule) const
+const HMODULE GameHelper::GetModule(LPCWSTR szModule)
 {
 	HMODULE hModule = 0;
 	wchar_t wcCurrentDir[MAX_PATH] = { 0 };
@@ -71,6 +71,8 @@ const char* GameHelper::GetVersionString() const
 		return "Lod109d";
 	case GameVersion::Lod110f:
 		return "Lod110";
+	case GameVersion::Lod111b:
+		return "Lod111b";
 	case GameVersion::Lod112:
 		return "Lod112";
 	case GameVersion::Lod113c:
@@ -92,6 +94,8 @@ uint32_t GameHelper::ScreenOpenMode() const
 		return *(const uint32_t*)((uint32_t)_hD2ClientDll + 0x115C10);
 	case GameVersion::Lod110f:
 		return *(const uint32_t*)((uint32_t)_hD2ClientDll + 0x10B9C4);
+	case GameVersion::Lod111b:
+		return *(const uint32_t*)((uint32_t)_hD2ClientDll + 0x11C3E4);
 	case GameVersion::Lod112:
 		return *(const uint32_t*)((uint32_t)_hD2ClientDll + 0x11C1D0);
 	case GameVersion::Lod113c:
@@ -133,14 +137,15 @@ Size GameHelper::GetConfiguredGameSize() const
 	}
 }
 
+static HANDLE _hD2GlideDll = GameHelper::GetModule(L"d2glide.dll");
 static const uint32_t gameAddresses_109d[] =
 {
 	0xFFFFFFFF,
-	0x6f818468, /* DrawWall1 */
-	0x6f818476, /* DrawWall2 */
-	0x6f813e2f, /* DrawFloor */
-	0, /* DrawShadow */
-	0x6f815efb,  /* DrawDynamic */
+	((uint32_t)_hD2GlideDll + 0x8468), /* DrawWall1 D2Glide:$0x8468 */
+	((uint32_t)_hD2GlideDll + 0x8476), /* DrawWall2 D2Glide:$0x8476 */
+	((uint32_t)_hD2GlideDll + 0x3E2F), /* DrawFloor D2Glide:$0x3E2F */
+	((uint32_t)_hD2GlideDll + 0x6949), /* DrawShadow D2Glide:$0x6949 */
+	((uint32_t)_hD2GlideDll + 0x5EFB), /* DrawDynamic D2Glide:$0x5EFB */
 	0, /* DrawSomething1 */
 	0, /* DrawSomething2 */
 };
@@ -148,11 +153,23 @@ static const uint32_t gameAddresses_109d[] =
 static const uint32_t gameAddresses_110[] =
 {
 	0xFFFFFFFF,
-	0x6f81840c, /* DrawWall1 */
-	0x6f81841a, /* DrawWall2 */
-	0x6f813e24, /* DrawFloor */
-	0, /* DrawShadow */
-	0x6f815ec9,  /* DrawDynamic */
+	((uint32_t)_hD2GlideDll + 0x840C), /* DrawWall1 D2Glide:$0x840C */
+	((uint32_t)_hD2GlideDll + 0x841A), /* DrawWall2 D2Glide:$0x841A */
+	((uint32_t)_hD2GlideDll + 0x3E24), /* DrawFloor D2Glide:$0x3E24 */
+	((uint32_t)_hD2GlideDll + 0x6915), /* DrawShadow D2Glide:$0x6915 */
+	((uint32_t)_hD2GlideDll + 0x5EC9), /* DrawDynamic D2Glide:$0x5EC9 */
+	0, /* DrawSomething1 */
+	0, /* DrawSomething2 */
+};
+
+static const uint32_t gameAddresses_111b[] =
+{
+	0xFFFFFFFF,
+	((uint32_t)_hD2GlideDll + 0xD44B), /* DrawWall1 D2Glide:$0xD44B */
+	((uint32_t)_hD2GlideDll + 0xD459), /* DrawWall2 D2Glide:$0xD459 */
+	((uint32_t)_hD2GlideDll + 0x9EFC), /* DrawFloor D2Glide:$0x9EFC */
+	((uint32_t)_hD2GlideDll + 0xB795), /* DrawShadow D2Glide:$0xB795 */
+	((uint32_t)_hD2GlideDll + 0xB584), /* DrawDynamic D2Glide:$0xB584 */
 	0, /* DrawSomething1 */
 	0, /* DrawSomething2 */
 };
@@ -160,11 +177,11 @@ static const uint32_t gameAddresses_110[] =
 static const uint32_t gameAddresses_112[] =
 {
 	0xFFFFFFFF,
-	0x6f85a2f9, /* DrawWall1 */
-	0x6f85a2eb, /* DrawWall2 */
-	0x6f856d6c, /* DrawFloor */
-	0, /* DrawShadow */
-	0x6f8587a4,  /* DrawDynamic */
+	((uint32_t)_hD2GlideDll + 0xA2EB), /* DrawWall1 D2Glide:$0xA2EB */
+	((uint32_t)_hD2GlideDll + 0xA2F9), /* DrawWall2 D2Glide:$0xA2F9 */
+	((uint32_t)_hD2GlideDll + 0x6D6C), /* DrawFloor D2Glide:$0x6D6C */
+	((uint32_t)_hD2GlideDll + 0x89B5), /* DrawShadow D2Glide:$0x89B5 */
+	((uint32_t)_hD2GlideDll + 0x87A4), /* DrawDynamic D2Glide:$0x87A4 */
 	0, /* DrawSomething1 */
 	0, /* DrawSomething2 */
 };
@@ -172,25 +189,25 @@ static const uint32_t gameAddresses_112[] =
 static const uint32_t gameAddresses_113c[] =
 {
 	0xFFFFFFFF,
-	0x6f8567ab, /* DrawWall1 */
-	0x6f8567b9, /* DrawWall2 */
-	0x6f85befc, /* DrawFloor */
-	0x50a995, /* DrawShadow */
-	0x6f85a344,  /* DrawDynamic */
-	0x0050c38d, /* DrawSomething1 */
-	0x0050c0de, /* DrawSomething2 */
+	((uint32_t)_hD2GlideDll + 0x67AB), /* DrawWall1 D2Glide:$0x67AB */
+	((uint32_t)_hD2GlideDll + 0x67B9), /* DrawWall2 D2Glide:$0x67B9 */
+	((uint32_t)_hD2GlideDll + 0xBEFC), /* DrawFloor D2Glide:$0xBEFC */
+	((uint32_t)_hD2GlideDll + 0xA555), /* DrawShadow D2Glide:$0xA555 */
+	((uint32_t)_hD2GlideDll + 0xA344), /* DrawDynamic D2Glide:$0xA344 */
+	0, /* DrawSomething1 */
+	0, /* DrawSomething2 */
 };
 
 static const uint32_t gameAddresses_113d[] =
 {
 	0xFFFFFFFF,
-	0x6f857199, /* DrawWall1 */
-	0x6f85718b, /* DrawWall2 */
-	0x6f85c17c, /* DrawFloor */
-	0x6f859ef5, /* DrawShadow */
-	0x6f859ce4,  /* DrawDynamic */
-	0x0050c38d, /* DrawSomething1 */
-	0x0050c0de, /* DrawSomething2 */
+	((uint32_t)_hD2GlideDll + 0x718B), /* DrawWall1 D2Glide:$0x718B */
+	((uint32_t)_hD2GlideDll + 0x7199), /* DrawWall2 D2Glide:$0x7199 */
+	((uint32_t)_hD2GlideDll + 0xC17C), /* DrawFloor D2Glide:$0xC17C */
+	((uint32_t)_hD2GlideDll + 0x9EF5), /* DrawShadow D2Glide:$0x9EF5 */
+	((uint32_t)_hD2GlideDll + 0x9CE4), /* DrawDynamic D2Glide:$0x9CE4 */
+	0, /* DrawSomething1 */
+	0, /* DrawSomething2 */
 };
 
 static const uint32_t gameAddresses_114d[] =
@@ -221,6 +238,10 @@ GameAddress GameHelper::IdentifyGameAddress(
 	case GameVersion::Lod110f:
 		gameAddresses = gameAddresses_110;
 		gameAddressCount = ARRAYSIZE(gameAddresses_110);
+		break;
+	case GameVersion::Lod111b:
+		gameAddresses = gameAddresses_111b;
+		gameAddressCount = ARRAYSIZE(gameAddresses_111b);
 		break;
 	case GameVersion::Lod112:
 		gameAddresses = gameAddresses_112;
@@ -731,7 +752,7 @@ GameVersion GameHelper::GetGameVersion() {
 	if (count_109d >= minimum_match_dll) version = GameVersion::Lod109d;
 	if (count_110f >= minimum_match_dll) version = GameVersion::Lod110f;
 	//if (count_111 >= minimum_match_dll) version = GameVersion::Lod111;
-	//if (count_111b >= minimum_match_dll) version = GameVersion::Lod111b;
+	if (count_111b >= minimum_match_dll) version = GameVersion::Lod111b;
 	if (count_112a >= minimum_match_dll) version = GameVersion::Lod112;
 	if (count_113c >= minimum_match_dll) version = GameVersion::Lod113c;
 	if (count_113d >= minimum_match_dll) version = GameVersion::Lod113d;
@@ -776,6 +797,10 @@ bool GameHelper::TryApplyInGameFpsFix()
 		{
 			PatchUInt32(_hD2ClientDll, 0xA2C9, 0x90909090);
 		}
+		break;
+	case GameVersion::Lod111b:
+		PatchUInt32(_hD2ClientDll, 0x33591, 0x90909090);
+		PatchUInt32(_hD2ClientDll, 0x33595, 0x90909090);
 		break;
 	case GameVersion::Lod112:
 		if (ProbeUInt32(_hD2ClientDll, 0x7D1E5, 0x35756FBD))
@@ -832,6 +857,9 @@ bool GameHelper::TryApplyMenuFpsFix()
 			PatchUInt32(_hD2WinDll, 0xD029, 0x81909090);
 		}
 		break;
+	case GameVersion::Lod111b:
+		PatchUInt32(_hD2WinDll, 0x13F59, 0x81909090);//
+		break;
 	case GameVersion::Lod112:
 		if (ProbeUInt32(_hD2WinDll, 0xD949, 0x8128C783))
 		{
@@ -883,6 +911,12 @@ bool GameHelper::TryApplyInGameSleepFixes()
 		{
 			PatchUInt32(_hD2ClientDll, 0x9E8C, 0x83909090);
 		}
+		break;
+	case GameVersion::Lod111b:
+		PatchUInt32(_hD2ClientDll, 0x5D4A4, 0x90909090);
+		PatchUInt32(_hD2ClientDll, 0x5D4A8, 0x90909090);
+		PatchUInt32(_hD2ClientDll, 0x320B8, 0x90909090);
+		PatchUInt32(_hD2ClientDll, 0x320DD, 0x90909090);
 		break;
 	case GameVersion::Lod112:
 		if (ProbeUInt32(_hD2ClientDll, 0x6CFD4, 0x15FF0A6A))
@@ -1005,6 +1039,8 @@ D2::UnitAny* GameHelper::GetPlayerUnit() const
 	case GameVersion::Lod110f:
 		getClientPlayerFunc = (GetClientPlayerFunc)((uintptr_t)_hD2ClientDll + 0x883D0);
 		return getClientPlayerFunc();
+	case GameVersion::Lod111b:
+		return (D2::UnitAny*)*(const uint32_t*)((uint32_t)_hD2ClientDll + 0x11C1E0);
 	case GameVersion::Lod112:
 		return (D2::UnitAny*)*(const uint32_t*)((uint32_t)_hD2ClientDll + 0x11C3D0);
 	case GameVersion::Lod113c:
@@ -1331,6 +1367,63 @@ void* GameHelper::GetFunction(
 			break;
 		}
 		break;
+	case GameVersion::Lod111b:
+		switch (function)
+		{
+		case D2Function::D2Gfx_DrawImage:
+			hModule = _hD2GfxDll;
+			ordinal = 10044;
+			break;
+		case D2Function::D2Gfx_DrawShiftedImage:
+			hModule = _hD2GfxDll;
+			ordinal = 10068;
+			break;
+		case D2Function::D2Gfx_DrawVerticalCropImage:
+			hModule = _hD2GfxDll;
+			ordinal = 10009;
+			break;
+		case D2Function::D2Gfx_DrawClippedImage:
+			hModule = _hD2GfxDll;
+			ordinal = 10005;
+			break;
+		case D2Function::D2Gfx_DrawImageFast:
+			hModule = _hD2GfxDll;
+			ordinal = 10075;
+			break;
+		case D2Function::D2Gfx_DrawShadow:
+			hModule = _hD2GfxDll;
+			ordinal = 10032;
+			break;
+		case D2Function::D2Win_DrawText:
+			hModule = _hD2WinDll;
+			ordinal = 10064;
+			break;
+		case D2Function::D2Win_DrawTextEx:
+			hModule = _hD2WinDll;
+			ordinal = 10043;
+			break;
+		case D2Function::D2Win_DrawFramedText:
+			hModule = _hD2WinDll;
+			ordinal = 10039;
+			break;
+		case D2Function::D2Win_DrawRectangledText:
+			hModule = _hD2WinDll;
+			ordinal = 10103;
+			break;
+		case D2Function::D2Client_DrawUnit:
+			return (void*)((uintptr_t)_hD2ClientDll + 0x478D0);
+		case D2Function::D2Client_DrawMissile:
+			return (void*)((uintptr_t)_hD2ClientDll + 0x480A0);
+		case D2Function::D2Client_DrawWeatherParticles:
+			return (void*)((uintptr_t)_hD2ClientDll + 0x12730);
+		case D2Function::D2Client_FindClientSideUnit:
+			return (void*)((uintptr_t)_hD2ClientDll + 0x4C040);
+		case D2Function::D2Client_FindServerSideUnit:
+			return (void*)((uintptr_t)_hD2ClientDll + 0x4C060);
+		default:
+			break;
+		}
+		break;
 	case GameVersion::Lod112:
 		switch (function)
 		{
@@ -1557,6 +1650,13 @@ DrawParameters GameHelper::GetDrawParameters(
 			.unitMode = cellContext->u.v109.dwMode
 
 		};
+	case GameVersion::Lod111b:
+		return {
+			.unitId = cellContext->u.v109.dwUnit,
+			.unitType = cellContext->u.v109.dwMode, //if dwClass, belt items jiggling
+			.unitToken = cellContext->u.v109.dwUnitToken,
+			.unitMode = cellContext->u.v109.dwMode
+		};
 	case GameVersion::Lod112:
 		return {
 			.unitId = cellContext->u.v112.dwUnit,
@@ -1604,6 +1704,8 @@ bool GameHelper::IsGameMenuOpen() const
 		return *((uint32_t*)((uint32_t)_hD2ClientDll + 0x1248D8)) != 0;
 	case GameVersion::Lod110f:
 		return *((uint32_t*)((uint32_t)_hD2ClientDll + 0x11A6CC)) != 0;
+	case GameVersion::Lod111b:
+		return *((uint32_t*)((uint32_t)_hD2ClientDll + 0x1040E4)) != 0;
 	case GameVersion::Lod112:
 		return *((uint32_t*)((uint32_t)_hD2ClientDll + 0x102B7C)) != 0;
 	case GameVersion::Lod113c:
@@ -1627,6 +1729,8 @@ bool GameHelper::IsInGame() const
 		return *((uint32_t*)((uint32_t)_hD2ClientDll + 0x1109FC)) != 0 && playerUnit != 0 && playerUnit->u.v109.path != 0;
 	case GameVersion::Lod110f:
 		return *((uint32_t*)((uint32_t)_hD2ClientDll + 0x1077C4)) != 0 && playerUnit != 0 && playerUnit->u.v110.path != 0;
+	case GameVersion::Lod111b:
+		return *((uint32_t*)((uint32_t)_hD2ClientDll + 0x11BEF4)) != 0 && playerUnit != 0 && playerUnit->u.v112.path != 0;
 	case GameVersion::Lod112:
 		return *((uint32_t*)((uint32_t)_hD2ClientDll + 0x11BCC4)) != 0 && playerUnit != 0 && playerUnit->u.v112.path != 0;
 	case GameVersion::Lod113c:
